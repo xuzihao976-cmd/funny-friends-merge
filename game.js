@@ -5,16 +5,16 @@
   const RADII = [22, 27, 33, 40, 48, 58, 70, 83, 98, 116];
   const COLORS = ['#ffe482','#ffc9db','#d9c2ff','#aeeaf0','#ffbb8b','#bce8b1','#ff9ec2','#c6abfa','#8edbcf','#ffc46e'];
   const PRESETS = [
-    {name:'蒙面小号', emoji:'🥷', slug:'mask', focus:[.50,.38], zoom:1.38},
-    {name:'憋笑预备役', emoji:'😏', slug:'smirk', focus:[.50,.42], zoom:1.35},
-    {name:'冷面判官', emoji:'🤓', slug:'glasses', focus:[.51,.51], zoom:1.00},
-    {name:'嘘声特工', emoji:'🤫', slug:'shh', focus:[.43,.34], zoom:1.38},
-    {name:'沉思大师', emoji:'🤔', slug:'nose', focus:[.50,.45], zoom:1.16},
-    {name:'哈欠冲天', emoji:'🥱', slug:'yawn', focus:[.48,.53], zoom:1.20},
-    {name:'泡沫禅师', emoji:'🫧', slug:'spa', focus:[.48,.34], zoom:1.00},
-    {name:'鸡王觉醒', emoji:'🐓', slug:'rooster', focus:[.46,.43], zoom:1.00},
-    {name:'不服战神', emoji:'😤', slug:'finger', focus:[.53,.42], zoom:1.00},
-    {name:'宴席大王', emoji:'👑', slug:'feast', focus:[.50,.49], zoom:1.00}
+    {name:'蒙面小号', emoji:'🥷', slug:'mask'},
+    {name:'憋笑预备役', emoji:'😏', slug:'smirk'},
+    {name:'冷面判官', emoji:'🤓', slug:'glasses'},
+    {name:'嘘声特工', emoji:'🤫', slug:'shh'},
+    {name:'沉思大师', emoji:'🤔', slug:'nose'},
+    {name:'哈欠冲天', emoji:'🥱', slug:'yawn'},
+    {name:'泡沫禅师', emoji:'🫧', slug:'spa'},
+    {name:'鸡王觉醒', emoji:'🐓', slug:'rooster'},
+    {name:'不服战神', emoji:'😤', slug:'finger'},
+    {name:'宴席大王', emoji:'👑', slug:'feast'}
   ];
   const MODE_KEY = 'funny-merge-mode-v1';
   const params = new URLSearchParams(location.search);
@@ -25,8 +25,7 @@
   const makeAssets = () => PRESETS.map((preset, i) => {
     const photo = `assets/${mode === 'comic' ? 'level' : 'photo'}-${String(i + 1).padStart(2,'0')}-${preset.slug}.${mode === 'comic' ? 'webp' : 'jpg'}`;
     return {name:preset.name, emoji:preset.emoji, photo, basePhoto:photo,
-      image:null, focus:mode === 'comic' ? [.5,.5] : preset.focus,
-      zoom:mode === 'comic' ? 1 : preset.zoom};
+      image:null, focus:[.5,.5], zoom:1};
   });
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
@@ -342,7 +341,7 @@
       }
       if (asset.photo !== asset.basePhoto) {
         const restore = document.createElement('button'); restore.type = 'button'; restore.textContent = '恢复预设';
-        restore.addEventListener('click', () => { asset.photo = asset.basePhoto; asset.focus = mode === 'comic' ? [.5,.5] : PRESETS[i].focus; asset.zoom = mode === 'comic' ? 1 : PRESETS[i].zoom; loadImage(asset); saveAssets(); studioSlots(); renderLevels(); updatePreview(); });
+        restore.addEventListener('click', () => { asset.photo = asset.basePhoto; asset.focus = [.5,.5]; asset.zoom = 1; loadImage(asset); saveAssets(); studioSlots(); renderLevels(); updatePreview(); });
         buttons.appendChild(restore);
       }
       controls.append(label, name, buttons); slot.appendChild(controls); studioGrid.appendChild(slot);
@@ -407,8 +406,8 @@
       if (pack.version === 2) setMode(pack.mode);
       pack.levels.forEach((entry, i) => {
         assets[i].name = entry.name || PRESETS[i].name; assets[i].photo = entry.photo;
-        assets[i].focus = entry.photo === assets[i].basePhoto ? (mode === 'comic' ? [.5,.5] : PRESETS[i].focus) : [.5,.5];
-        assets[i].zoom = entry.photo === assets[i].basePhoto ? (mode === 'comic' ? 1 : PRESETS[i].zoom) : 1;
+        assets[i].focus = [.5,.5];
+        assets[i].zoom = 1;
         loadImage(assets[i]);
       });
       saveAssets(); studioSlots(); renderLevels(); updatePreview(); startGame();
