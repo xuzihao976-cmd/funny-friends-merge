@@ -13,11 +13,12 @@
     {name:'哈欠冲天', emoji:'🥱', slug:'yawn'},
     {name:'泡沫禅师', emoji:'🫧', slug:'spa'},
     {name:'鸡王觉醒', emoji:'🐓', slug:'rooster'},
-    {name:'不服战神', emoji:'😤', slug:'finger'},
+    {name:'不服战神', emoji:'😤', slug:'duo'},
     {name:'宴席大王', emoji:'👑', slug:'feast'}
   ];
   const MODE_KEY = 'family-merge-mode-v2';
   const SOUND_KEY = 'family-merge-sound-v1';
+  const GALLERY_KEY = 'family-merge-gallery-v1';
   const BONUS_DROP_CHANCE = .12;
   const BONUS_LEVEL_DECAY = .46;
   const SOUND_FILES = {
@@ -41,12 +42,14 @@
   const nextName = document.getElementById('nextName');
   const poolHint = document.getElementById('poolHint');
   const levelGrid = document.getElementById('levelGrid');
+  const levelCount = document.getElementById('levelCount');
 
   let assets = makeAssets();
   let balls = [], particles = [], floats = [];
   let score = 0, best = 0, current = 0, next = 0, aimX = W / 2;
   let gameOver = false, overTimer = 0, lastDrop = -10, lastTime = 0, accumulator = 0;
   let highestMergedLevel = 3, soundOn = true, audioContext = null, pointerDown = false;
+  let highestGalleryLevel = 0;
   let lastImpactSound = -10;
   const soundBytes = Object.fromEntries(Object.entries(SOUND_FILES).map(([key, path]) =>
     [key, fetch(path).then(response => response.ok ? response.arrayBuffer() : null).catch(() => null)]));
@@ -55,6 +58,10 @@
 
   try { best = Number(localStorage.getItem('funny-merge-best-v1')) || 0; } catch (_) {}
   try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (_) {}
+  try {
+    const saved = Number(localStorage.getItem(GALLERY_KEY));
+    if (Number.isInteger(saved)) highestGalleryLevel = Math.max(0, Math.min(RADII.length - 1, saved));
+  } catch (_) {}
   bestEl.textContent = best.toLocaleString();
   document.getElementById('soundBtn').setAttribute('aria-pressed', String(soundOn));
   document.getElementById('soundBtn').textContent = soundOn ? '♫ 音效开启' : '♫ 音效关闭';
@@ -149,6 +156,7 @@
     balls = balls.filter(ball => ball !== a && ball !== b);
     const points = level >= RADII.length ? 1000 : Math.round(15 * Math.pow(2, level));
     setScore(score + points);
+    unlockGalleryThrough(level);
     floats.push({x, y, text: '+' + points, age: 0, life: 1.15});
     if (!reducedMotion) for (let i = 0; i < 13; i++) {
       const ang = (i / 13) * Math.PI * 2;
@@ -333,10 +341,26 @@
     levelGrid.replaceChildren();
     assets.forEach((asset, i) => {
       const item = document.createElement('div'); item.className = 'level-item';
-      item.appendChild(avatarElement(asset, 'level-face'));
-      const label = document.createElement('span'); label.textContent = asset.name; label.title = `${i + 1} 级 · ${asset.name}`;
+      const unlocked = i <= highestGalleryLevel;
+      item.classList.toggle('locked', !unlocked);
+      item.setAttribute('aria-label', unlocked ? `第 ${i + 1} 级：${asset.name}` : `第 ${i + 1} 级：未解锁`);
+      if (unlocked) item.appendChild(avatarElement(asset, 'level-face'));
+      else {
+        const face = document.createElement('div'); face.className = 'level-face locked-face'; face.setAttribute('aria-hidden', 'true'); face.textContent = '?';
+        item.appendChild(face);
+      }
+      const label = document.createElement('span'); label.textContent = unlocked ? asset.name : `${i + 1}级待解锁`;
       item.appendChild(label); levelGrid.appendChild(item);
     });
+    levelCount.textContent = `${highestGalleryLevel + 1} / ${RADII.length} 已解锁`;
+  }
+  function unlockGalleryThrough(level) {
+    const nextLevel = Math.min(RADII.length - 1, level);
+    if (nextLevel <= highestGalleryLevel) return;
+    highestGalleryLevel = nextLevel;
+    try { localStorage.setItem(GALLERY_KEY, String(highestGalleryLevel)); } catch (_) {}
+    renderLevels();
+    if (!reducedMotion) levelGrid.children[nextLevel]?.classList.add('just-unlocked');
   }
   function updateModeButtons() {
     for (const [id, value] of [['photoModeBtn','photo'],['comicModeBtn','comic']]) {

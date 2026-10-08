@@ -42,12 +42,12 @@
 
       <aside class="side-column" aria-label="游戏信息和设置">
         <div class="side-card next-card"><div class="card-title-row"><div><p class="eyebrow">COMING UP</p><h2>下一个是谁？</h2></div><span class="sparkle" aria-hidden="true">✧</span></div><div class="next-preview"><div class="next-avatar" id="nextAvatar" aria-hidden="true">😎</div><div><strong id="nextName">小机灵鬼</strong><span>准备空降现场</span></div></div><p class="pool-hint" id="poolHint" role="status">合出第 5 级后，大球有机会直接空降。</p></div>
-        <div class="side-card levels-card"><div class="card-title-row"><div><p class="eyebrow">THE EVOLUTION</p><h2>离谱进化图鉴</h2></div><span class="level-count">10 级</span></div><div class="level-grid" id="levelGrid"></div><p class="microcopy">两个终极头像相遇，会清空并获得额外分数。</p></div>
+        <div class="side-card levels-card"><div class="card-title-row"><div><p class="eyebrow">THE EVOLUTION</p><h2>离谱进化图鉴</h2></div><span class="level-count" id="levelCount" aria-live="polite">1 / 10 已解锁</span></div><div class="level-grid" id="levelGrid"></div><p class="microcopy">合出新等级即可点亮图鉴；本机保留，两种画风共用。</p></div>
       </aside>
     </main>
     <footer class="site-footer"><span>空格投放 · ← → 瞄准 · R 重开</span><span>两种画风 · 手机和电脑都能玩</span></footer>
   </div>
 
-  <dialog id="howDialog" class="how-dialog" aria-labelledby="howTitle"><button class="close-button" id="closeHow" type="button" aria-label="关闭">×</button><p class="eyebrow">HOW TO PLAY</p><h2 id="howTitle">让头像碰个头</h2><ol><li>在盒子上方移动，选择下落位置。</li><li>点击、轻触或按空格，投下当前头像。</li><li>两个相同等级相碰，会变成下一等级并得分。</li><li>合出第 5 级后，每次生成新头像有 12% 概率从已解锁的大球中出现；越大的球越稀有。</li><li>头像堆到警戒线且持续不掉下来，本局结束。</li></ol><p>触屏可按住左右拖动瞄准，松手投放。键盘用 ← → 移动，R 重新开局。</p><button class="primary-button" id="gotItBtn" type="button">明白，开合！</button></dialog>
+  <dialog id="howDialog" class="how-dialog" aria-labelledby="howTitle"><button class="close-button" id="closeHow" type="button" aria-label="关闭">×</button><p class="eyebrow">HOW TO PLAY</p><h2 id="howTitle">让头像碰个头</h2><ol><li>在盒子上方移动，选择下落位置。</li><li>点击、轻触或按空格，投下当前头像。</li><li>两个相同等级相碰，会变成下一等级并得分，也会点亮图鉴。</li><li>合出第 5 级后，每次生成新头像有 12% 概率从已解锁的大球中出现；越大的球越稀有。</li><li>头像堆到警戒线且持续不掉下来，本局结束。</li></ol><p>触屏可按住左右拖动瞄准，松手投放。键盘用 ← → 移动，R 重新开局。</p><button class="primary-button" id="gotItBtn" type="button">明白，开合！</button></dialog>
 </body>
 </html>
