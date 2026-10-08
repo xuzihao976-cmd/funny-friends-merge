@@ -16,11 +16,19 @@
     {name:'不服战神', emoji:'😤', slug:'finger'},
     {name:'宴席大王', emoji:'👑', slug:'feast'}
   ];
-  const MODE_KEY = 'funny-merge-mode-v1';
+  const MODE_KEY = 'family-merge-mode-v2';
+  const SOUND_KEY = 'family-merge-sound-v1';
+  const BONUS_DROP_CHANCE = .12;
+  const BONUS_LEVEL_DECAY = .46;
+  const SOUND_FILES = {
+    drop:'assets/sfx/drop.wav', land:'assets/sfx/land.wav', merge:'assets/sfx/merge.wav',
+    bigMerge:'assets/sfx/big-merge.wav', unlock:'assets/sfx/unlock.wav',
+    finish:'assets/sfx/finish.wav', gameOver:'assets/sfx/game-over.wav', switch:'assets/sfx/switch.wav'
+  };
   const params = new URLSearchParams(location.search);
   const requestedMode = params.get('mode');
-  let mode = requestedMode === 'photo' || requestedMode === 'comic' ? requestedMode : 'comic';
-  try { if (!requestedMode) mode = localStorage.getItem(MODE_KEY) === 'photo' ? 'photo' : 'comic'; } catch (_) {}
+  let mode = requestedMode === 'photo' || requestedMode === 'comic' ? requestedMode : 'photo';
+  try { if (!requestedMode) mode = localStorage.getItem(MODE_KEY) === 'comic' ? 'comic' : 'photo'; } catch (_) {}
   const STORAGE = () => `funny-merge-assets-v2-${mode}`;
   const makeAssets = () => PRESETS.map((preset, i) => {
     const photo = `assets/${mode === 'comic' ? 'level' : 'photo'}-${String(i + 1).padStart(2,'0')}-${preset.slug}.${mode === 'comic' ? 'webp' : 'jpg'}`;
@@ -34,6 +42,7 @@
   const scoreEl = document.getElementById('score');
   const bestEl = document.getElementById('best');
   const nextName = document.getElementById('nextName');
+  const poolHint = document.getElementById('poolHint');
   const levelGrid = document.getElementById('levelGrid');
   const studioGrid = document.getElementById('studioGrid');
 
@@ -41,11 +50,18 @@
   let balls = [], particles = [], floats = [];
   let score = 0, best = 0, current = 0, next = 0, aimX = W / 2;
   let gameOver = false, overTimer = 0, lastDrop = -10, lastTime = 0, accumulator = 0;
-  let soundOn = true, audioContext = null, pointerDown = false;
+  let highestMergedLevel = 3, soundOn = true, audioContext = null, pointerDown = false;
+  let lastImpactSound = -10;
+  const soundBytes = Object.fromEntries(Object.entries(SOUND_FILES).map(([key, path]) =>
+    [key, fetch(path).then(response => response.ok ? response.arrayBuffer() : null).catch(() => null)]));
+  const soundBuffers = {};
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   try { best = Number(localStorage.getItem('funny-merge-best-v1')) || 0; } catch (_) {}
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (_) {}
   bestEl.textContent = best.toLocaleString();
+  document.getElementById('soundBtn').setAttribute('aria-pressed', String(soundOn));
+  document.getElementById('soundBtn').textContent = soundOn ? '♫ 音效开启' : '♫ 音效关闭';
 
   function setupCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -56,7 +72,28 @@
   setupCanvas();
   window.addEventListener('resize', setupCanvas);
 
-  function randLevel() { const n = Math.random(); return n < .43 ? 0 : n < .76 ? 1 : n < .94 ? 2 : 3; }
+  function randLevel(random = Math.random) {
+    if (highestMergedLevel >= 4 && random() < BONUS_DROP_CHANCE) {
+      const maxLevel = Math.min(highestMergedLevel, RADII.length - 1);
+      let total = 0;
+      for (let level = 4; level <= maxLevel; level++) total += BONUS_LEVEL_DECAY ** (level - 4);
+      let pick = random() * total;
+      for (let level = 4; level <= maxLevel; level++) {
+        pick -= BONUS_LEVEL_DECAY ** (level - 4);
+        if (pick < 0) return level;
+      }
+      return maxLevel;
+    }
+    const n = random();
+    return n < .43 ? 0 : n < .76 ? 1 : n < .94 ? 2 : 3;
+  }
+  function updatePoolHint() {
+    const unlocked = highestMergedLevel >= 4;
+    poolHint.textContent = unlocked
+      ? `大球彩蛋已解锁：后续有 12% 概率空降已合出的第 5–${highestMergedLevel + 1} 级头像。`
+      : '合出第 5 级后，后续有 12% 概率直接出现已解锁的大球。';
+    poolHint.classList.toggle('unlocked', unlocked);
+  }
   function setScore(value) {
     score = value;
     scoreEl.textContent = score.toLocaleString();
@@ -68,26 +105,33 @@
   }
   function startGame() {
     balls = []; particles = []; floats = []; overTimer = 0; gameOver = false;
+    highestMergedLevel = 3;
+    lastImpactSound = -10;
     current = randLevel(); next = randLevel(); aimX = W / 2; lastDrop = -10;
     setScore(0);
     document.getElementById('gameOver').classList.add('hidden');
+    updatePoolHint();
     updatePreview();
   }
 
-  function playTone(freq, duration, type = 'sine', volume = .07) {
-    if (!soundOn) return;
+  function playSound(name, volume = .3, rate = 1) {
+    if (!soundOn || !soundBytes[name]) return;
     try {
       audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-      if (audioContext.state === 'suspended') audioContext.resume();
-      const now = audioContext.currentTime;
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.type = type; osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.exponentialRampToValueAtTime(freq * .72, now + duration);
-      gain.gain.setValueAtTime(volume, now);
-      gain.gain.exponentialRampToValueAtTime(.001, now + duration);
-      osc.connect(gain).connect(audioContext.destination);
-      osc.start(now); osc.stop(now + duration);
+      const context = audioContext;
+      soundBuffers[name] ||= soundBytes[name]
+        .then(bytes => bytes ? context.decodeAudioData(bytes.slice(0)) : null)
+        .catch(() => null);
+      const resumed = context.state === 'suspended' ? context.resume().catch(() => {}) : Promise.resolve();
+      Promise.all([soundBuffers[name], resumed]).then(([buffer]) => {
+        if (!buffer || !soundOn || context.state !== 'running') return;
+        const source = context.createBufferSource(), gain = context.createGain();
+        source.buffer = buffer;
+        source.playbackRate.value = Math.max(.6, Math.min(1.5, rate));
+        gain.gain.value = Math.max(0, Math.min(1, volume));
+        source.connect(gain).connect(context.destination);
+        source.start();
+      });
     } catch (_) {}
   }
 
@@ -95,11 +139,12 @@
     if (gameOver || studio.open || howDialog.open) return;
     const time = performance.now() / 1000;
     if (time - lastDrop < .46) return;
-    const r = RADII[current];
-    balls.push({ x: Math.max(r + 4, Math.min(W - r - 4, aimX)), y: 73, vx: 0, vy: 32, r, level: current, age: 0, id: Math.random() });
+    const droppedLevel = current, r = RADII[droppedLevel];
+    balls.push({ x: Math.max(r + 4, Math.min(W - r - 4, aimX)), y: Math.max(73, r + 6),
+      vx: 0, vy: 32, r, level: droppedLevel, age: 0, impactSounded: false, id: Math.random() });
     lastDrop = time; current = next; next = randLevel();
     updatePreview();
-    playTone(290, .09, 'triangle', .04);
+    playSound('drop', .26, 1.12 - droppedLevel * .045);
   }
 
   function merge(a, b) {
@@ -115,9 +160,15 @@
       particles.push({x, y, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed, age: 0, life: .45 + Math.random() * .3, color: COLORS[Math.min(level, 9)]});
     }
     if (level < RADII.length) {
-      balls.push({x, y, vx: (a.vx + b.vx) * .2, vy: -150, r: RADII[level], level, age: 0, id: Math.random()});
+      balls.push({x, y, vx: (a.vx + b.vx) * .2, vy: -150, r: RADII[level], level,
+        age: 0, impactSounded: false, id: Math.random()});
     }
-    playTone(390 + level * 65, .23, 'sine', .09);
+    if (level >= RADII.length) playSound('finish', .42);
+    else if (level > highestMergedLevel) {
+      highestMergedLevel = level;
+      updatePoolHint();
+      playSound('unlock', .42, 1.08 - level * .035);
+    } else playSound(level >= 6 ? 'bigMerge' : 'merge', level >= 6 ? .42 : .34, 1.15 - level * .055);
   }
 
   function physics(dt) {
@@ -129,7 +180,16 @@
       b.y += b.vy * dt;
       if (b.x < b.r + 3) { b.x = b.r + 3; b.vx = Math.abs(b.vx) * .22; }
       if (b.x > W - b.r - 3) { b.x = W - b.r - 3; b.vx = -Math.abs(b.vx) * .22; }
-      if (b.y > H - b.r - 5) { b.y = H - b.r - 5; b.vy = -Math.abs(b.vy) * .1; b.vx *= .985; if (Math.abs(b.vy) < 12) b.vy = 0; }
+      if (b.y > H - b.r - 5) {
+        const impactSpeed = b.vy;
+        b.y = H - b.r - 5; b.vy = -Math.abs(b.vy) * .1; b.vx *= .985;
+        if (Math.abs(b.vy) < 12) b.vy = 0;
+        const now = performance.now() / 1000;
+        if (!b.impactSounded && impactSpeed > 120 && now - lastImpactSound > .07) {
+          b.impactSounded = true; lastImpactSound = now;
+          playSound('land', .16 + Math.min(b.level, 7) * .016, 1.08 - b.level * .045);
+        }
+      }
     }
     let pairToMerge = null;
     for (let pass = 0; pass < 2; pass++) {
@@ -146,6 +206,13 @@
         a.x -= nx * penetration * moveA * .9; a.y -= ny * penetration * moveA * .9;
         b.x += nx * penetration * moveB * .9; b.y += ny * penetration * moveB * .9;
         const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        if (rel < -140 && a.level !== b.level && (!a.impactSounded || !b.impactSounded)) {
+          const now = performance.now() / 1000;
+          if (now - lastImpactSound > .07) {
+            a.impactSounded = b.impactSounded = true; lastImpactSound = now;
+            playSound('land', .14 + Math.min(a.level, b.level) * .015, 1.07 - Math.max(a.level, b.level) * .04);
+          }
+        }
         if (rel < 0) {
           const impulse = -(1.13 * rel) / (1 / ma + 1 / mb);
           a.vx -= impulse * nx / ma; a.vy -= impulse * ny / ma;
@@ -169,7 +236,7 @@
     document.getElementById('finalScore').textContent = score.toLocaleString();
     document.getElementById('recordLine').textContent = score === best && score > 0 ? '新纪录！这波合成有点东西 ✨' : '最高纪录 ' + best.toLocaleString() + ' 分';
     document.getElementById('gameOver').classList.remove('hidden');
-    playTone(220, .35, 'triangle', .07);
+    playSound('gameOver', .38);
   }
 
   function circlePath(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
@@ -210,11 +277,14 @@
     ctx.fillText('警戒线', 10, DANGER_Y - 10);
     if (!gameOver && !studio.open && !howDialog.open) {
       const r = RADII[current], x = Math.max(r + 4, Math.min(W - r - 4, aimX));
+      const ghostY = Math.max(62, r + 7);
       ctx.setLineDash([4, 8]); ctx.strokeStyle = 'rgba(112,62,188,.38)'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(x, 75 + r); ctx.lineTo(x, H - 8); ctx.stroke(); ctx.setLineDash([]);
-      drawAvatar(current, x, 62, r, .87, true);
-      ctx.fillStyle = '#67499d'; ctx.textAlign = 'center'; ctx.font = '800 11px "Noto Sans SC",sans-serif';
-      ctx.fillText(assets[current].name, x, Math.max(14, 60 - r - 10));
+      ctx.beginPath(); ctx.moveTo(x, ghostY + r + 5); ctx.lineTo(x, H - 8); ctx.stroke(); ctx.setLineDash([]);
+      drawAvatar(current, x, ghostY, r, .87, true);
+      if (r <= 70) {
+        ctx.fillStyle = '#67499d'; ctx.textAlign = 'center'; ctx.font = '800 11px "Noto Sans SC",sans-serif';
+        ctx.fillText(assets[current].name, x, Math.max(14, ghostY - r - 10));
+      }
     }
     for (const b of balls) drawAvatar(b.level, b.x, b.y, b.r);
     for (const p of particles) {
@@ -303,6 +373,7 @@
   function setMode(value) {
     if (value !== 'photo' && value !== 'comic') return;
     if (mode !== value) {
+      playSound('switch', .21);
       mode = value;
       assets = makeAssets(); loadAssets(); renderLevels();
       if (studio.open) studioSlots();
@@ -376,21 +447,27 @@
     if (e.code === 'KeyR') startGame();
   });
 
-  document.getElementById('restartBtn').addEventListener('click', startGame);
-  document.getElementById('againBtn').addEventListener('click', startGame);
-  document.getElementById('editBtn').addEventListener('click', () => { studioSlots(); studio.showModal(); });
+  document.getElementById('restartBtn').addEventListener('click', () => { playSound('switch', .21); startGame(); });
+  document.getElementById('againBtn').addEventListener('click', () => { playSound('switch', .21); startGame(); });
+  document.getElementById('editBtn').addEventListener('click', () => { playSound('switch', .18); studioSlots(); studio.showModal(); });
   document.getElementById('closeStudio').addEventListener('click', () => studio.close());
   document.getElementById('doneBtn').addEventListener('click', () => { saveAssets(); studio.close(); startGame(); });
   document.getElementById('howBtn').addEventListener('click', () => howDialog.showModal());
   document.getElementById('closeHow').addEventListener('click', () => howDialog.close());
   document.getElementById('gotItBtn').addEventListener('click', () => howDialog.close());
-  document.getElementById('soundBtn').addEventListener('click', e => { soundOn = !soundOn; e.currentTarget.setAttribute('aria-pressed', String(soundOn)); e.currentTarget.textContent = soundOn ? '♫ 音效开启' : '♫ 音效关闭'; });
+  document.getElementById('soundBtn').addEventListener('click', e => {
+    soundOn = !soundOn;
+    try { localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off'); } catch (_) {}
+    e.currentTarget.setAttribute('aria-pressed', String(soundOn));
+    e.currentTarget.textContent = soundOn ? '♫ 音效开启' : '♫ 音效关闭';
+    if (soundOn) playSound('switch', .21);
+  });
   document.getElementById('photoModeBtn').addEventListener('click', () => setMode('photo'));
   document.getElementById('comicModeBtn').addEventListener('click', () => setMode('comic'));
   document.getElementById('exportBtn').addEventListener('click', () => {
     const blob = new Blob([JSON.stringify({version:2,mode,levels:assets.map(({name,photo}) => ({name,photo}))},null,2)],{type:'application/json'});
     const url = URL.createObjectURL(blob), link = document.createElement('a');
-    link.href = url; link.download = `爆笑合成局-${mode === 'comic' ? '漫画版' : '照片版'}-照片包.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    link.href = url; link.download = `相亲相爱一家人-${mode === 'comic' ? '漫画版' : '照片版'}-照片包.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importInput').click());
   document.getElementById('importInput').addEventListener('change', async e => {

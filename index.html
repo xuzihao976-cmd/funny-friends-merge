@@ -4,28 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#28173f">
-  <meta name="description" content="上传朋友的照片，玩一场越合越离谱的下落合成游戏。">
+  <meta name="description" content="相亲相爱一家人的好友照片合成游戏，原照和漫画两种画风随时切换。">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2328173f'/%3E%3Ccircle cx='32' cy='31' r='20' fill='%23ffdb68'/%3E%3Ccircle cx='25' cy='28' r='2'/%3E%3Ccircle cx='39' cy='28' r='2'/%3E%3Cpath d='M24 38q8 9 16 0' fill='none' stroke='%2328173f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
-  <title>爆笑合成局 · 好友照片版</title>
+  <title>相亲相爱一家人 · 张张想不到</title>
   <link rel="stylesheet" href="styles.css">
   <script src="game.js" defer></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-icon" aria-hidden="true">✳</span><span>爆笑合成局<span class="brand-dot">.</span></span></div>
-      <div class="top-actions"><span class="pill-tag">好友照片版</span><button class="text-button" id="howBtn" type="button">怎么玩 <span aria-hidden="true">↗</span></button></div>
+      <div class="brand"><span class="brand-icon" aria-hidden="true">✳</span><span>相亲相爱一家人<span class="brand-dot">.</span></span></div>
+      <div class="top-actions"><span class="pill-tag">好友合成局</span><button class="text-button" id="howBtn" type="button">怎么玩 <span aria-hidden="true">↗</span></button></div>
     </header>
 
     <div class="mode-panel" aria-label="头像版本选择">
-      <div class="mode-copy"><span class="mode-kicker">两版都做好了，选你最喜欢的</span><strong id="modeHint">夸张描边，保留每个人的招牌表情。</strong></div>
-      <div class="mode-buttons" role="group" aria-label="选择头像风格"><button id="photoModeBtn" type="button" aria-pressed="false">📷 原照版</button><button id="comicModeBtn" type="button" aria-pressed="true">✦ 漫画版</button></div>
+      <div class="mode-copy"><span class="mode-kicker">熟悉的人，两种画风</span><strong id="modeHint">原片精裁，保留照片现场感。</strong></div>
+      <div class="mode-buttons" role="group" aria-label="选择头像风格"><button id="photoModeBtn" type="button" aria-pressed="true" class="selected">📷 原照版</button><button id="comicModeBtn" type="button" aria-pressed="false">✦ 漫画版</button></div>
     </div>
 
     <main class="layout">
       <section class="game-column" aria-label="游戏区">
         <div class="stage-head">
-          <div><p class="eyebrow">DROP · BOUNCE · MERGE</p><h1>越合越离谱！</h1></div>
+          <div><p class="eyebrow">DROP · BOUNCE · MERGE</p><h1>张张想不到！</h1></div>
           <div class="score-cluster"><div class="score-box"><span>本局分数</span><strong id="score">0</strong></div><div class="score-box best"><span>最高纪录</span><strong id="best">0</strong></div></div>
         </div>
         <div class="stage-wrap" id="stageWrap">
@@ -39,12 +39,12 @@
       </section>
 
       <aside class="side-column" aria-label="游戏信息和设置">
-        <div class="side-card next-card"><div class="card-title-row"><div><p class="eyebrow">COMING UP</p><h2>下一个是谁？</h2></div><span class="sparkle" aria-hidden="true">✧</span></div><div class="next-preview"><div class="next-avatar" id="nextAvatar" aria-hidden="true">😎</div><div><strong id="nextName">小机灵鬼</strong><span>准备空降现场</span></div></div></div>
+        <div class="side-card next-card"><div class="card-title-row"><div><p class="eyebrow">COMING UP</p><h2>下一个是谁？</h2></div><span class="sparkle" aria-hidden="true">✧</span></div><div class="next-preview"><div class="next-avatar" id="nextAvatar" aria-hidden="true">😎</div><div><strong id="nextName">小机灵鬼</strong><span>准备空降现场</span></div></div><p class="pool-hint" id="poolHint" role="status">合出第 5 级后，大球有机会直接空降。</p></div>
         <div class="side-card levels-card"><div class="card-title-row"><div><p class="eyebrow">THE EVOLUTION</p><h2>离谱进化图鉴</h2></div><span class="level-count">10 级</span></div><div class="level-grid" id="levelGrid"></div><p class="microcopy">两个终极头像相遇，会清空并获得额外分数。</p></div>
         <div class="side-card customize-card"><div class="card-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h2>继续换上新照片</h2></div></div><p>十级头像都已配好。你仍可上传新照片、修改外号；新增照片只保存在你的浏览器中。</p><button class="primary-button" id="editBtn" type="button">✦ 打开照片工作室</button><div class="control-row"><button class="small-button" id="soundBtn" type="button" aria-pressed="true">♫ 音效开启</button><span>空格投放 · ← → 瞄准 · R 重开</span></div></div>
       </aside>
     </main>
-    <footer class="site-footer"><span>为朋友间的快乐整活而造 ✳</span><span>两种画风 · 手机和电脑都能玩</span></footer>
+    <footer class="site-footer"><span>所有照片都经过本人同意拍摄（也许有些没有）</span><span>两种画风 · 手机和电脑都能玩</span></footer>
   </div>
 
   <dialog id="studio" class="studio-dialog" aria-labelledby="studioTitle">
@@ -54,6 +54,6 @@
     <p class="dialog-note">照片包是一个 JSON 文件，发给朋友后可在他们的游戏里导入。建议使用朋友愿意公开分享的照片。</p>
   </dialog>
 
-  <dialog id="howDialog" class="how-dialog" aria-labelledby="howTitle"><button class="close-button" id="closeHow" type="button" aria-label="关闭">×</button><p class="eyebrow">HOW TO PLAY</p><h2 id="howTitle">让头像碰个头</h2><ol><li>在盒子上方移动，选择下落位置。</li><li>点击、轻触或按空格，投下当前头像。</li><li>两个相同等级相碰，会变成下一等级并得分。</li><li>头像堆到警戒线且持续不掉下来，本局结束。</li></ol><p>触屏可按住左右拖动瞄准，松手投放。键盘用 ← → 移动，R 重新开局。</p><button class="primary-button" id="gotItBtn" type="button">明白，开合！</button></dialog>
+  <dialog id="howDialog" class="how-dialog" aria-labelledby="howTitle"><button class="close-button" id="closeHow" type="button" aria-label="关闭">×</button><p class="eyebrow">HOW TO PLAY</p><h2 id="howTitle">让头像碰个头</h2><ol><li>在盒子上方移动，选择下落位置。</li><li>点击、轻触或按空格，投下当前头像。</li><li>两个相同等级相碰，会变成下一等级并得分。</li><li>合出第 5 级后，每次生成新头像有 12% 概率从已解锁的大球中出现；越大的球越稀有。</li><li>头像堆到警戒线且持续不掉下来，本局结束。</li></ol><p>触屏可按住左右拖动瞄准，松手投放。键盘用 ← → 移动，R 重新开局。</p><button class="primary-button" id="gotItBtn" type="button">明白，开合！</button></dialog>
 </body>
 </html>
