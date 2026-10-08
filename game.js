@@ -29,22 +29,18 @@
   const requestedMode = params.get('mode');
   let mode = requestedMode === 'photo' || requestedMode === 'comic' ? requestedMode : 'photo';
   try { if (!requestedMode) mode = localStorage.getItem(MODE_KEY) === 'comic' ? 'comic' : 'photo'; } catch (_) {}
-  const STORAGE = () => `funny-merge-assets-v2-${mode}`;
   const makeAssets = () => PRESETS.map((preset, i) => {
     const photo = `assets/${mode === 'comic' ? 'level' : 'photo'}-${String(i + 1).padStart(2,'0')}-${preset.slug}.${mode === 'comic' ? 'webp' : 'jpg'}`;
-    return {name:preset.name, emoji:preset.emoji, photo, basePhoto:photo,
-      image:null, focus:[.5,.5], zoom:1};
+    return {name:preset.name, emoji:preset.emoji, photo, image:null};
   });
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const studio = document.getElementById('studio');
   const howDialog = document.getElementById('howDialog');
   const scoreEl = document.getElementById('score');
   const bestEl = document.getElementById('best');
   const nextName = document.getElementById('nextName');
   const poolHint = document.getElementById('poolHint');
   const levelGrid = document.getElementById('levelGrid');
-  const studioGrid = document.getElementById('studioGrid');
 
   let assets = makeAssets();
   let balls = [], particles = [], floats = [];
@@ -136,7 +132,7 @@
   }
 
   function drop() {
-    if (gameOver || studio.open || howDialog.open) return;
+    if (gameOver || howDialog.open) return;
     const time = performance.now() / 1000;
     if (time - lastDrop < .46) return;
     const droppedLevel = current, r = RADII[droppedLevel];
@@ -248,9 +244,9 @@
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     ctx.save(); circlePath(x, y, r - 4); ctx.clip();
     if (asset.image && asset.image.complete) {
-      const im = asset.image, side = Math.min(im.naturalWidth, im.naturalHeight) / asset.zoom;
-      const sx = Math.max(0, Math.min(im.naturalWidth - side, im.naturalWidth * asset.focus[0] - side / 2));
-      const sy = Math.max(0, Math.min(im.naturalHeight - side, im.naturalHeight * asset.focus[1] - side / 2));
+      const im = asset.image, side = Math.min(im.naturalWidth, im.naturalHeight);
+      const sx = (im.naturalWidth - side) / 2;
+      const sy = (im.naturalHeight - side) / 2;
       ctx.drawImage(im, sx, sy, side, side, x - r + 4, y - r + 4, 2 * (r - 4), 2 * (r - 4));
     } else {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -275,7 +271,7 @@
     ctx.beginPath(); ctx.moveTo(0, DANGER_Y); ctx.lineTo(W, DANGER_Y); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = overTimer > .4 ? '#dc4d7b' : '#b18ab0'; ctx.font = '700 10px "DM Sans",sans-serif';
     ctx.fillText('警戒线', 10, DANGER_Y - 10);
-    if (!gameOver && !studio.open && !howDialog.open) {
+    if (!gameOver && !howDialog.open) {
       const r = RADII[current], x = Math.max(r + 4, Math.min(W - r - 4, aimX));
       const ghostY = Math.max(62, r + 7);
       ctx.setLineDash([4, 8]); ctx.strokeStyle = 'rgba(112,62,188,.38)'; ctx.lineWidth = 1.5;
@@ -306,7 +302,7 @@
   function frame(time) {
     if (!lastTime) lastTime = time;
     const dt = Math.min((time - lastTime) / 1000, .05); lastTime = time;
-    if (!gameOver && !studio.open && !howDialog.open && !document.hidden) {
+    if (!gameOver && !howDialog.open && !document.hidden) {
       accumulator += dt;
       let n = 0;
       while (accumulator >= 1 / 120 && n < 7) { physics(1 / 120); accumulator -= 1 / 120; n++; }
@@ -318,7 +314,7 @@
 
   function avatarElement(asset, className) {
     const el = document.createElement('div'); el.className = className;
-    if (asset.photo) { const img = document.createElement('img'); img.src = asset.photo; img.alt = ''; img.style.objectPosition = `${asset.focus[0]*100}% ${asset.focus[1]*100}%`; el.appendChild(img); }
+    if (asset.photo) { const img = document.createElement('img'); img.src = asset.photo; img.alt = ''; el.appendChild(img); }
     else el.textContent = asset.emoji;
     return el;
   }
@@ -342,24 +338,6 @@
       item.appendChild(label); levelGrid.appendChild(item);
     });
   }
-  function saveAssets() {
-    try { localStorage.setItem(STORAGE(), JSON.stringify(assets.map(({name,photo}) => ({name,photo})))); return true; }
-    catch (_) { alert('浏览器存储空间不足。照片本局可用，建议导出照片包保存。'); return false; }
-  }
-  function loadAssets() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE()) || 'null');
-      if (Array.isArray(saved) && saved.length === PRESETS.length) saved.forEach((entry, i) => {
-        if (typeof entry.name === 'string') assets[i].name = entry.name.slice(0, 16) || PRESETS[i].name;
-        if (entry.photo === null) assets[i].photo = null;
-        else if (typeof entry.photo === 'string' && (/^data:image\/(jpeg|png|webp);base64,/.test(entry.photo) || entry.photo === assets[i].basePhoto)) assets[i].photo = entry.photo;
-      });
-    } catch (_) {}
-    assets.forEach((asset, i) => {
-      if (asset.photo !== asset.basePhoto) { asset.focus = [.5,.5]; asset.zoom = 1; }
-      loadImage(asset);
-    });
-  }
   function updateModeButtons() {
     for (const [id, value] of [['photoModeBtn','photo'],['comicModeBtn','comic']]) {
       const button = document.getElementById(id);
@@ -375,8 +353,7 @@
     if (mode !== value) {
       playSound('switch', .21);
       mode = value;
-      assets = makeAssets(); loadAssets(); renderLevels();
-      if (studio.open) studioSlots();
+      assets = makeAssets(); assets.forEach(loadImage); renderLevels();
       updatePreview();
     }
     try { localStorage.setItem(MODE_KEY, mode); } catch (_) {}
@@ -384,64 +361,13 @@
     history.replaceState(null, '', url);
     updateModeButtons();
   }
-  function studioSlots() {
-    const scrollTop = studioGrid.scrollTop;
-    studioGrid.replaceChildren();
-    assets.forEach((asset, i) => {
-      const slot = document.createElement('div'); slot.className = 'studio-slot';
-      slot.appendChild(avatarElement(asset, 'slot-preview'));
-      const controls = document.createElement('div'); controls.className = 'slot-controls';
-      const label = document.createElement('label'); label.textContent = `第 ${i + 1} 级 · ${i === 9 ? '终极形态' : '合成升级'}`;
-      const name = document.createElement('input'); name.type = 'text'; name.maxLength = 16; name.value = asset.name; name.setAttribute('aria-label', `第 ${i + 1} 级外号`);
-      name.addEventListener('change', () => { asset.name = name.value.trim().slice(0,16) || PRESETS[i].name; saveAssets(); renderLevels(); updatePreview(); });
-      const buttons = document.createElement('div'); buttons.className = 'slot-buttons';
-      const upload = document.createElement('button'); upload.type = 'button'; upload.textContent = asset.photo ? '换照片' : '上传照片';
-      const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.hidden = true;
-      upload.addEventListener('click', () => input.click());
-      input.addEventListener('change', async () => {
-        const file = input.files?.[0]; if (!file) return;
-        if (file.size > 15 * 1024 * 1024) { alert('请选小于 15 MB 的图片。'); return; }
-        try { asset.photo = await compressPhoto(file); asset.focus = [.5,.5]; asset.zoom = 1; loadImage(asset); saveAssets(); studioSlots(); renderLevels(); updatePreview(); }
-        catch (_) { alert('这张照片无法读取，请换一张试试。'); }
-      });
-      buttons.append(upload, input);
-      if (asset.photo) {
-        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove'; remove.textContent = '移除';
-        remove.addEventListener('click', () => { asset.photo = null; asset.image = null; saveAssets(); studioSlots(); renderLevels(); updatePreview(); });
-        buttons.appendChild(remove);
-      }
-      if (asset.photo !== asset.basePhoto) {
-        const restore = document.createElement('button'); restore.type = 'button'; restore.textContent = '恢复预设';
-        restore.addEventListener('click', () => { asset.photo = asset.basePhoto; asset.focus = [.5,.5]; asset.zoom = 1; loadImage(asset); saveAssets(); studioSlots(); renderLevels(); updatePreview(); });
-        buttons.appendChild(restore);
-      }
-      controls.append(label, name, buttons); slot.appendChild(controls); studioGrid.appendChild(slot);
-    });
-    studioGrid.scrollTop = scrollTop;
-  }
-  function compressPhoto(file) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file), image = new Image();
-      image.onload = () => {
-        URL.revokeObjectURL(url);
-        const c = document.createElement('canvas'); c.width = c.height = 320;
-        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0,0,320,320);
-        const side = Math.min(image.naturalWidth, image.naturalHeight);
-        g.drawImage(image,(image.naturalWidth-side)/2,(image.naturalHeight-side)/2,side,side,0,0,320,320);
-        resolve(c.toDataURL('image/jpeg', .78));
-      };
-      image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
-      image.src = url;
-    });
-  }
-
   function canvasX(clientX) { const rect = canvas.getBoundingClientRect(); return (clientX - rect.left) * W / rect.width; }
   canvas.addEventListener('pointerdown', e => { pointerDown = true; aimX = canvasX(e.clientX); canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || pointerDown) aimX = canvasX(e.clientX); });
   canvas.addEventListener('pointerup', e => { if (pointerDown) { aimX = canvasX(e.clientX); drop(); } pointerDown = false; });
   canvas.addEventListener('pointercancel', () => { pointerDown = false; });
   window.addEventListener('keydown', e => {
-    if (studio.open || howDialog.open || /INPUT|TEXTAREA/.test(document.activeElement?.tagName || '')) return;
+    if (howDialog.open || /INPUT|TEXTAREA/.test(document.activeElement?.tagName || '')) return;
     if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') { e.preventDefault(); aimX += e.code === 'ArrowLeft' ? -15 : 15; aimX = Math.max(24,Math.min(W-24,aimX)); }
     if (e.code === 'Space') { e.preventDefault(); drop(); }
     if (e.code === 'KeyR') startGame();
@@ -449,9 +375,6 @@
 
   document.getElementById('restartBtn').addEventListener('click', () => { playSound('switch', .21); startGame(); });
   document.getElementById('againBtn').addEventListener('click', () => { playSound('switch', .21); startGame(); });
-  document.getElementById('editBtn').addEventListener('click', () => { playSound('switch', .18); studioSlots(); studio.showModal(); });
-  document.getElementById('closeStudio').addEventListener('click', () => studio.close());
-  document.getElementById('doneBtn').addEventListener('click', () => { saveAssets(); studio.close(); startGame(); });
   document.getElementById('howBtn').addEventListener('click', () => howDialog.showModal());
   document.getElementById('closeHow').addEventListener('click', () => howDialog.close());
   document.getElementById('gotItBtn').addEventListener('click', () => howDialog.close());
@@ -464,33 +387,5 @@
   });
   document.getElementById('photoModeBtn').addEventListener('click', () => setMode('photo'));
   document.getElementById('comicModeBtn').addEventListener('click', () => setMode('comic'));
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({version:2,mode,levels:assets.map(({name,photo}) => ({name,photo}))},null,2)],{type:'application/json'});
-    const url = URL.createObjectURL(blob), link = document.createElement('a');
-    link.href = url; link.download = `相亲相爱一家人-${mode === 'comic' ? '漫画版' : '照片版'}-照片包.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  });
-  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importInput').click());
-  document.getElementById('importInput').addEventListener('change', async e => {
-    const file = e.target.files?.[0]; if (!file) return;
-    try {
-      if (file.size > 6 * 1024 * 1024) throw new Error('large');
-      const pack = JSON.parse(await file.text());
-      if (![1,2].includes(pack.version) || !Array.isArray(pack.levels) || pack.levels.length !== 10) throw new Error('invalid');
-      if (pack.version === 2 && pack.mode !== 'photo' && pack.mode !== 'comic') throw new Error('invalid');
-      pack.levels.forEach(entry => {
-        if (typeof entry.name !== 'string' || entry.name.length > 16 || (entry.photo !== null && (typeof entry.photo !== 'string' || !(/^data:image\/(jpeg|png|webp);base64,/.test(entry.photo) || /^assets\/(photo|level)-\d{2}-[a-z]+\.(jpg|png|webp)$/.test(entry.photo))))) throw new Error('invalid');
-      });
-      if (pack.version === 2) setMode(pack.mode);
-      pack.levels.forEach((entry, i) => {
-        assets[i].name = entry.name || PRESETS[i].name; assets[i].photo = entry.photo;
-        assets[i].focus = [.5,.5];
-        assets[i].zoom = 1;
-        loadImage(assets[i]);
-      });
-      saveAssets(); studioSlots(); renderLevels(); updatePreview(); startGame();
-    } catch (_) { alert('照片包格式不对，或文件太大。'); }
-    e.target.value = '';
-  });
-
-  loadAssets(); renderLevels(); updateModeButtons(); startGame(); requestAnimationFrame(frame);
+  assets.forEach(loadImage); renderLevels(); updateModeButtons(); startGame(); requestAnimationFrame(frame);
 })();
