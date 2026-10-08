@@ -47,6 +47,7 @@
   let assets = makeAssets();
   let balls = [], particles = [], floats = [];
   let score = 0, best = 0, current = 0, next = 0, aimX = W / 2;
+  let runId = '';
   let gameOver = false, overTimer = 0, lastDrop = -10, lastTime = 0, accumulator = 0;
   let highestMergedLevel = 3, soundOn = true, audioContext = null, pointerDown = false;
   let unlockedLevels = 1;
@@ -114,12 +115,14 @@
     }
   }
   function startGame() {
+    runId = crypto.randomUUID();
     balls = []; particles = []; floats = []; overTimer = 0; gameOver = false;
     highestMergedLevel = 3;
     lastImpactSound = -10;
     current = randLevel(); next = randLevel(); aimX = W / 2; lastDrop = -10;
     setScore(0);
     document.getElementById('gameOver').classList.add('hidden');
+    window.familyLeaderboard?.beginRun(runId);
     updatePoolHint();
     updatePreview();
   }
@@ -243,10 +246,12 @@
   }
 
   function endGame() {
+    if (gameOver) return;
     gameOver = true;
     document.getElementById('finalScore').textContent = score.toLocaleString();
     document.getElementById('recordLine').textContent = score === best && score > 0 ? '新纪录！这波合成有点东西 ✨' : '最高纪录 ' + best.toLocaleString() + ' 分';
     document.getElementById('gameOver').classList.remove('hidden');
+    window.familyLeaderboard?.submit(score, mode, runId);
     playSound('gameOver', .38);
   }
 

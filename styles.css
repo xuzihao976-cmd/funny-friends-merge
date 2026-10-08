@@ -29,3 +29,22 @@ dialog{border:1px solid #eee4f6;border-radius:25px;background:#fffdfa;box-shadow
 @media(max-width:620px){.page-shell{padding:10px 10px 20px}.consent-banner{margin-bottom:12px;padding:8px 10px;font-size:11px}.topbar{padding:0 3px;margin-bottom:12px}.brand{gap:7px;font-size:18px}.brand-icon{flex-basis:31px;width:31px;height:31px;font-size:20px}.top-actions{gap:6px}.pill-tag{padding:5px 8px;font-size:10px}.text-button{font-size:11px}.mode-panel{align-items:stretch;flex-direction:column;gap:8px;margin-bottom:11px;padding:10px}.mode-copy{flex-direction:row;align-items:baseline;justify-content:space-between;gap:8px}.mode-copy strong{font-size:10px;text-align:right}.mode-controls{justify-content:space-between;gap:6px}.mode-buttons{flex:1}.mode-buttons button{flex:1;padding:7px 8px;font-size:11px}.sound-button{min-width:85px;padding:7px 8px;font-size:11px}.layout{gap:11px}.game-column{padding:10px;border-radius:21px}.stage-head{margin-bottom:10px;padding:5px 4px 1px}.stage-head .eyebrow{font-size:8px;letter-spacing:.09em}.stage-head h1{font-size:23px}.score-box{min-width:69px;padding:6px 8px;border-radius:10px}.score-box span{font-size:9px}.score-box strong{font-size:19px}.stage-wrap{border-width:2px;border-radius:17px}.stage-footer{margin-top:10px;padding:0 3px}.hint{font-size:10px}.stage-footer .small-button{padding:7px;font-size:10px}.side-column{gap:10px}.side-card{padding:14px;border-radius:18px}.card-title-row h2{font-size:17px}.next-preview{gap:8px;padding:8px}.next-avatar{flex-basis:46px;width:46px;height:46px;font-size:24px}.next-preview strong{font-size:12px}.next-preview span{font-size:10px}.level-grid{gap:6px 2px}.level-face{border-width:2px;font-size:18px}.level-item span{font-size:8px}.microcopy{font-size:9px}.site-footer{padding:14px 5px 0;font-size:10px}}
 @media(max-width:390px){.brand{font-size:15px}.brand-icon{flex-basis:28px;width:28px;height:28px}.pill-tag{padding:5px 6px;font-size:9px}.text-button{font-size:10px}.mode-copy strong{display:none}.stage-head h1{font-size:21px}.stage-head .eyebrow{font-size:7px;letter-spacing:0}.score-box{min-width:63px;padding:5px 6px}.score-box strong{font-size:18px}.side-column{grid-template-columns:1fr}.level-grid{gap:8px 4px}.level-item span{font-size:9px}.site-footer{align-items:flex-start;flex-direction:column;gap:2px}.site-footer span:last-child{text-align:left}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.primary-button{transition:none}.level-item.just-unlocked .level-face{animation:none}}
+
+.leaderboard-card{grid-column:1/-1;background:linear-gradient(155deg,#fffdfd,#f8f1ff)}
+.nickname-label{display:block;margin:0 0 6px;font-size:11px;font-weight:800;color:var(--muted)}
+.nickname-input{width:100%;min-height:42px;padding:9px 11px;border:1px solid #decdf4;border-radius:11px;background:#fff;color:var(--ink);font:inherit;font-size:14px;font-weight:700}
+.nickname-input:focus-visible{outline:3px solid #ffae34;outline-offset:3px}
+.leader-list{display:flex;flex-direction:column;gap:6px;max-height:310px;overflow-y:auto;list-style:none;margin:13px 0 0;padding:0}
+.leader-row{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:7px;padding:8px 10px;border:1px solid #eee5f7;border-radius:11px;background:#fff}
+.leader-rank{display:grid;place-items:center;width:23px;height:23px;border-radius:7px;background:#eee6fa;color:#7148bd;font-size:11px;font-weight:900}
+.leader-row:first-child .leader-rank{background:#ffe88a;color:#7d5200}
+.leader-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800}
+.leader-score{color:var(--violet);font-size:14px;font-weight:900;font-variant-numeric:tabular-nums}
+.leader-meta{grid-column:2/-1;margin-top:-4px;color:var(--muted);font-size:10px}
+.leader-empty{padding:18px 8px;border:1px dashed #dbcaee;border-radius:11px;color:var(--muted);font-size:12px;line-height:1.6;text-align:center}
+.leader-bottom{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:11px}
+.leader-bottom p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+.leader-refresh{border:0;background:transparent;color:var(--violet);font-size:11px;font-weight:900;white-space:nowrap;padding:7px}
+.rank-feedback{min-height:16px;margin:0!important;font-size:11px!important;line-height:1.4}
+.rank-retry{margin-top:8px}
+@media(max-width:620px){.nickname-input{font-size:16px}.leader-list{max-height:270px}}

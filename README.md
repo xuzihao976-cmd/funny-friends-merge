@@ -14,6 +14,16 @@
 
 页面顶部可切换原照版和漫画版，也可关闭音效。头像使用网站内置素材；页面没有照片上传、导入或导出功能。
 
-网站为纯静态页面，无需构建或后台服务。内容安全策略限制脚本、图片与音效的加载来源。此前版本保存在浏览器中的自定义照片数据不再读取。
+页面为静态文件，无需构建；共享排行榜使用 Supabase 数据库和 Edge Function。内容安全策略仅允许本网站素材和已配置的 Supabase 项目。此前版本保存在浏览器中的自定义照片数据不再读取。
+
+## 共享排行榜
+
+- 所有玩家共用最近 7 天榜单，原照与漫画合并排行；每个游客身份仅显示这段时间的最高分，前 20 名按分数降序，同分先提交者在前。
+- 结束一局自动登记非零成绩，昵称最多 12 个字符。浏览器保存服务器签发的游客凭证，清除浏览器数据或换设备会成为新玩家。
+- 断网时保留最近 20 局待登记成绩，恢复网络或重新打开页面后补交；同一局重试不会重复计入。榜单每分钟更新，也可手动刷新。
+- 服务端决定提交时间、校验分数范围并限制提交频率。游客凭证只以 SHA-256 摘要存入私有表；网站只包含公开项目地址和 publishable key。
+- 浏览器不能直接插入、修改或删除成绩，也不能读取私有玩家信息。分数由客户端玩法产生，本榜适用于朋友娱乐，尚未实现服务端完整复盘反作弊。
+
+后端源代码位于 `supabase/`。新项目按顺序执行 `leaderboard.sql`、`guest-sessions.sql`，部署 `functions/family-scores/`，关闭该函数的平台 JWT 检查，使用函数内的游客凭证验证。无需开启 Supabase Auth 匿名登录。后台私有表启用 RLS 且无浏览器访问策略是有意的默认拒绝；[Supabase 对此的说明](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy)。未使用的新索引提示可在上线积累查询统计后复查。
 
 音效来自 Kenney 的 CC0 [Interface Sounds](https://kenney.nl/assets/interface-sounds) 与 [Impact Sounds](https://kenney.nl/assets/impact-sounds)。所用文件见 `assets/sfx/SOURCE.md`。
