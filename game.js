@@ -18,7 +18,7 @@
   ];
   const MODE_KEY = 'family-merge-mode-v2';
   const SOUND_KEY = 'family-merge-sound-v1';
-  const GALLERY_KEY = 'family-merge-gallery-v1';
+  const GALLERY_KEY = 'family-merge-gallery-v2';
   const BONUS_DROP_CHANCE = .12;
   const BONUS_LEVEL_DECAY = .46;
   const SOUND_FILES = {
@@ -49,7 +49,7 @@
   let score = 0, best = 0, current = 0, next = 0, aimX = W / 2;
   let gameOver = false, overTimer = 0, lastDrop = -10, lastTime = 0, accumulator = 0;
   let highestMergedLevel = 3, soundOn = true, audioContext = null, pointerDown = false;
-  let highestGalleryLevel = 0;
+  let unlockedLevels = 1;
   let lastImpactSound = -10;
   const soundBytes = Object.fromEntries(Object.entries(SOUND_FILES).map(([key, path]) =>
     [key, fetch(path).then(response => response.ok ? response.arrayBuffer() : null).catch(() => null)]));
@@ -59,8 +59,15 @@
   try { best = Number(localStorage.getItem('funny-merge-best-v1')) || 0; } catch (_) {}
   try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (_) {}
   try {
-    const saved = Number(localStorage.getItem(GALLERY_KEY));
-    if (Number.isInteger(saved)) highestGalleryLevel = Math.max(0, Math.min(RADII.length - 1, saved));
+    const saved = localStorage.getItem(GALLERY_KEY);
+    if (saved !== null) {
+      const mask = Number(saved);
+      if (Number.isInteger(mask) && mask >= 0 && mask < (1 << RADII.length)) unlockedLevels = mask | 1;
+    } else {
+      const previous = localStorage.getItem('family-merge-gallery-v1');
+      const level = Number(previous);
+      if (previous !== null && Number.isInteger(level) && level >= 0 && level < RADII.length) unlockedLevels = (1 << (level + 1)) - 1;
+    }
   } catch (_) {}
   bestEl.textContent = best.toLocaleString();
   document.getElementById('soundBtn').setAttribute('aria-pressed', String(soundOn));
@@ -156,7 +163,7 @@
     balls = balls.filter(ball => ball !== a && ball !== b);
     const points = level >= RADII.length ? 1000 : Math.round(15 * Math.pow(2, level));
     setScore(score + points);
-    unlockGalleryThrough(level);
+    unlockGalleryLevel(level);
     floats.push({x, y, text: '+' + points, age: 0, life: 1.15});
     if (!reducedMotion) for (let i = 0; i < 13; i++) {
       const ang = (i / 13) * Math.PI * 2;
@@ -341,7 +348,7 @@
     levelGrid.replaceChildren();
     assets.forEach((asset, i) => {
       const item = document.createElement('div'); item.className = 'level-item';
-      const unlocked = i <= highestGalleryLevel;
+      const unlocked = Boolean(unlockedLevels & (1 << i));
       item.classList.toggle('locked', !unlocked);
       item.setAttribute('aria-label', unlocked ? `第 ${i + 1} 级：${asset.name}` : `第 ${i + 1} 级：未解锁`);
       if (unlocked) item.appendChild(avatarElement(asset, 'level-face'));
@@ -352,15 +359,15 @@
       const label = document.createElement('span'); label.textContent = unlocked ? asset.name : `${i + 1}级待解锁`;
       item.appendChild(label); levelGrid.appendChild(item);
     });
-    levelCount.textContent = `${highestGalleryLevel + 1} / ${RADII.length} 已解锁`;
+    const count = assets.reduce((total, _, i) => total + Number(Boolean(unlockedLevels & (1 << i))), 0);
+    levelCount.textContent = `${count} / ${RADII.length} 已解锁`;
   }
-  function unlockGalleryThrough(level) {
-    const nextLevel = Math.min(RADII.length - 1, level);
-    if (nextLevel <= highestGalleryLevel) return;
-    highestGalleryLevel = nextLevel;
-    try { localStorage.setItem(GALLERY_KEY, String(highestGalleryLevel)); } catch (_) {}
+  function unlockGalleryLevel(level) {
+    if (level < 0 || level >= RADII.length || (unlockedLevels & (1 << level))) return;
+    unlockedLevels |= 1 << level;
+    try { localStorage.setItem(GALLERY_KEY, String(unlockedLevels)); } catch (_) {}
     renderLevels();
-    if (!reducedMotion) levelGrid.children[nextLevel]?.classList.add('just-unlocked');
+    if (!reducedMotion) levelGrid.children[level]?.classList.add('just-unlocked');
   }
   function updateModeButtons() {
     for (const [id, value] of [['photoModeBtn','photo'],['comicModeBtn','comic']]) {
